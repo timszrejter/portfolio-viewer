@@ -221,7 +221,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
 
       // Fetch encrypted file from Pinata public gateway
       console.log('📌 Fetching encrypted portfolio from Pinata...');
-      const gatewayUrl = `https://cloudflare-ipfs.com/ipfs/${cid}`;
+      const gatewayUrl = `https://ipfs.io/ipfs/${cid}`;
       const response = await fetch(gatewayUrl);
       if (!response.ok) throw new Error(`Failed to fetch from Pinata: HTTP ${response.status}`);
 
