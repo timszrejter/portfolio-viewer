@@ -117,8 +117,8 @@ const PortfolioApp = ({ viewerMode = false }) => {
   const [viewerTotalValue, setViewerTotalValue] = React.useState(100000);
   const [viewerRawData, setViewerRawData] = React.useState(null); // Store raw encrypted data for recalc
 
-  // In the public viewer (Vercel), there is no backend — all decryption is browser-side.
-  // VIEWER_API is intentionally empty; live price fetches use a CORS-friendly proxy.
+  // In the public viewer (Vercel), there is no backend — all requests go through
+  // Vercel serverless functions in /api/ to avoid CORS issues.
   const VIEWER_API = '';
   const API_BASE_URL = 'https://127.0.0.1:3001/api'; // not used in viewer mode
 
@@ -170,19 +170,16 @@ const PortfolioApp = ({ viewerMode = false }) => {
 
   // === Viewer Mode: Browser-side AES-256-GCM decryption (no backend needed) ===
   const browserDecrypt = async (encryptedBase64, passphrase) => {
-    // Convert base64 → ArrayBuffer
     const binaryStr = atob(encryptedBase64);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
 
-    // Layout: salt(32) + iv(16) + authTag(16) + ciphertext
     const SALT_LEN = 32, IV_LEN = 16, TAG_LEN = 16;
     const salt = bytes.slice(0, SALT_LEN);
     const iv = bytes.slice(SALT_LEN, SALT_LEN + IV_LEN);
     const authTag = bytes.slice(SALT_LEN + IV_LEN, SALT_LEN + IV_LEN + TAG_LEN);
     const ciphertext = bytes.slice(SALT_LEN + IV_LEN + TAG_LEN);
 
-    // Derive key using PBKDF2-SHA-512, 100k iterations
     const enc = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
       'raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveBits']
@@ -195,7 +192,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
       'raw', keyBits, { name: 'AES-GCM' }, false, ['decrypt']
     );
 
-    // AES-GCM decrypt — Web Crypto expects ciphertext+authTag concatenated
+    // Web Crypto expects ciphertext+authTag concatenated
     const ciphertextWithTag = new Uint8Array(ciphertext.length + TAG_LEN);
     ciphertextWithTag.set(ciphertext);
     ciphertextWithTag.set(authTag, ciphertext.length);
@@ -209,24 +206,22 @@ const PortfolioApp = ({ viewerMode = false }) => {
     return new TextDecoder().decode(decrypted);
   };
 
-  // === Viewer Mode: Load portfolio from Pinata IPFS (browser-side, no backend) ===
+  // === Viewer Mode: Load portfolio from Pinata via Vercel proxy ===
   const loadViewerPortfolio = async (passphrase) => {
     try {
       setViewerLoading(true);
       setViewerError(null);
 
-      // PINATA_CID is injected at build time by index.html
       const cid = window.__PINATA_CID__;
       if (!cid) throw new Error('No Pinata CID configured. Please re-deploy after uploading your portfolio.');
 
-      // Fetch encrypted file from Pinata public gateway
-      console.log('📌 Fetching encrypted portfolio from Pinata...');
-      const gatewayUrl = `https://ipfs.io/ipfs/${cid}`;
-      const response = await fetch(gatewayUrl);
+      // Fetch encrypted file via Vercel serverless proxy (avoids CORS)
+      console.log('📌 Fetching encrypted portfolio via proxy...');
+      const response = await fetch(`/api/pinata?cid=${cid}`);
       if (!response.ok) throw new Error(`Failed to fetch from Pinata: HTTP ${response.status}`);
 
       const encryptedBase64 = await response.text();
-      console.log(`📦 Fetched ${encryptedBase64.length} bytes from Pinata`);
+      console.log(`📦 Fetched ${encryptedBase64.length} bytes`);
 
       // Decrypt in browser
       let decryptedJson;
@@ -238,20 +233,16 @@ const PortfolioApp = ({ viewerMode = false }) => {
       }
 
       const data = JSON.parse(decryptedJson);
-      console.log('📊 Encrypted portfolio loaded:', data.h.length, 'holdings');
+      console.log('📊 Portfolio loaded:', data.h.length, 'holdings');
 
       setViewerRawData(data);
-
-      // Always default to $100,000 for viewer
       const defaultTotal = 100000;
 
-      // Transform and load into UI state
       const { categories: cats, holdings: holds } = transformEncryptedData(data, defaultTotal);
       setCategories(cats);
       setHoldings(holds);
       setViewerNeedsAuth(false);
 
-      // Fetch live prices for all unique tickers
       await fetchViewerLivePrices(holds, data, defaultTotal);
 
     } catch (err) {
@@ -262,7 +253,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
     }
   };
 
-  // === Viewer Mode: Fetch live prices (browser-side, CORS-friendly) ===
+  // === Viewer Mode: Fetch live prices via Vercel proxy (avoids CORS) ===
   const fetchViewerLivePrices = async (currentHoldings, rawData, totalVal) => {
     const uniqueTickers = [...new Set(currentHoldings.map(h => h.ticker))];
     const prices = {};
@@ -274,13 +265,11 @@ const PortfolioApp = ({ viewerMode = false }) => {
 
     for (const ticker of tickersToFetch) {
       try {
-        // Use Yahoo Finance v8 API directly — works from browser
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
-        const resp = await fetch(url);
+        // Use Vercel serverless proxy to avoid CORS
+        const resp = await fetch(`/api/quote?ticker=${encodeURIComponent(ticker)}`);
         if (resp.ok) {
-          const json = await resp.json();
-          const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
-          if (price) prices[ticker] = price;
+          const data = await resp.json();
+          if (data.price) prices[ticker] = data.price;
         }
       } catch (err) {
         console.warn(`Failed to fetch price for ${ticker}:`, err);
