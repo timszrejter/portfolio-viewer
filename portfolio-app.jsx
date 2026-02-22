@@ -269,6 +269,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
           const data = await resp.json();
           if (data.price) prices[ticker] = data.price;
           if (data.name) names[ticker] = data.name;
+          if (data.dividendYield) dividendYields[ticker] = data.dividendYield;
         }
       } catch (err) {
         console.warn(`Failed to fetch price for ${ticker}:`, err);
@@ -303,7 +304,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
           accountType: account?.startsWith('R') ? 'Roth IRA' : 
                        account?.startsWith('T') ? 'Traditional IRA' : 'Taxable',
           accountName: account,
-          dividendYield: null,
+          dividendYield: dividendYields[ticker] || null,
           initialDate: null,
           transactions: [],
           reason_for_buy: null,
