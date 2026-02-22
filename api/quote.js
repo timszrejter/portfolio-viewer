@@ -27,11 +27,13 @@ export default async function handler(req, res) {
     }
 
     const json = await response.json();
-    const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
+    const meta = json?.chart?.result?.[0]?.meta;
+    const price = meta?.regularMarketPrice || null;
+    const name = meta?.shortName || meta?.longName || null;
 
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30'); // cache 1 min
-    return res.status(200).json({ ticker, price });
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
+    return res.status(200).json({ ticker, price, name });
 
   } catch (err) {
     console.error(`Quote proxy error for ${ticker}:`, err);

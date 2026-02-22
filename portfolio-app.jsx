@@ -115,10 +115,11 @@ const PortfolioApp = ({ viewerMode = false }) => {
   const [viewerPassphrase, setViewerPassphrase] = React.useState('');
   const [viewerNeedsAuth, setViewerNeedsAuth] = React.useState(false);
   const [viewerTotalValue, setViewerTotalValue] = React.useState(100000);
-  const [viewerRawData, setViewerRawData] = React.useState(null); // Store raw encrypted data for recalc
+  const [viewerRawData, setViewerRawData] = React.useState(null);
+  const [companyNames, setCompanyNames] = React.useState({}); // ticker → company name
+  const [tickerDisplay, setTickerDisplay] = React.useState('ticker'); // 'ticker' | 'name' | 'both'
 
-  // In the public viewer (Vercel), there is no backend — all requests go through
-  // Vercel serverless functions in /api/ to avoid CORS issues.
+  // In the public viewer (Vercel), all requests go through Vercel serverless functions
   const VIEWER_API = '';
   const API_BASE_URL = 'https://127.0.0.1:3001/api'; // not used in viewer mode
 
@@ -168,7 +169,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
     return { categories: cats, holdings: holds };
   };
 
-  // === Viewer Mode: Browser-side AES-256-GCM decryption (no backend needed) ===
+  // === Viewer Mode: Browser-side AES-256-GCM decryption ===
   const browserDecrypt = async (encryptedBase64, passphrase) => {
     const binaryStr = atob(encryptedBase64);
     const bytes = new Uint8Array(binaryStr.length);
@@ -192,7 +193,6 @@ const PortfolioApp = ({ viewerMode = false }) => {
       'raw', keyBits, { name: 'AES-GCM' }, false, ['decrypt']
     );
 
-    // Web Crypto expects ciphertext+authTag concatenated
     const ciphertextWithTag = new Uint8Array(ciphertext.length + TAG_LEN);
     ciphertextWithTag.set(ciphertext);
     ciphertextWithTag.set(authTag, ciphertext.length);
@@ -215,7 +215,6 @@ const PortfolioApp = ({ viewerMode = false }) => {
       const cid = window.__PINATA_CID__;
       if (!cid) throw new Error('No Pinata CID configured. Please re-deploy after uploading your portfolio.');
 
-      // Fetch encrypted file via Vercel serverless proxy (avoids CORS)
       console.log('📌 Fetching encrypted portfolio via proxy...');
       const response = await fetch(`/api/pinata?cid=${cid}`);
       if (!response.ok) throw new Error(`Failed to fetch from Pinata: HTTP ${response.status}`);
@@ -223,7 +222,6 @@ const PortfolioApp = ({ viewerMode = false }) => {
       const encryptedBase64 = await response.text();
       console.log(`📦 Fetched ${encryptedBase64.length} bytes`);
 
-      // Decrypt in browser
       let decryptedJson;
       try {
         decryptedJson = await browserDecrypt(encryptedBase64, passphrase);
@@ -253,10 +251,11 @@ const PortfolioApp = ({ viewerMode = false }) => {
     }
   };
 
-  // === Viewer Mode: Fetch live prices via Vercel proxy (avoids CORS) ===
+  // === Viewer Mode: Fetch live prices + company names via Vercel proxy ===
   const fetchViewerLivePrices = async (currentHoldings, rawData, totalVal) => {
     const uniqueTickers = [...new Set(currentHoldings.map(h => h.ticker))];
     const prices = {};
+    const names = {};
 
     // Skip options (they have stored prices)
     const tickersToFetch = uniqueTickers.filter(t => !/^\w+\d{6}[CP]\d+/.test(t));
@@ -265,16 +264,19 @@ const PortfolioApp = ({ viewerMode = false }) => {
 
     for (const ticker of tickersToFetch) {
       try {
-        // Use Vercel serverless proxy to avoid CORS
         const resp = await fetch(`/api/quote?ticker=${encodeURIComponent(ticker)}`);
         if (resp.ok) {
           const data = await resp.json();
           if (data.price) prices[ticker] = data.price;
+          if (data.name) names[ticker] = data.name;
         }
       } catch (err) {
         console.warn(`Failed to fetch price for ${ticker}:`, err);
       }
     }
+
+    console.log(`✅ Got prices for ${Object.keys(prices).length} tickers`);
+    setCompanyNames(names);
 
     console.log(`✅ Got prices for ${Object.keys(prices).length} tickers`);
 
@@ -2028,8 +2030,27 @@ const PortfolioApp = ({ viewerMode = false }) => {
                   }}>
                   <tr style={{ background: 'rgba(15, 23, 42, 0.6)' }}>
                     {[
-                      { key: 'ticker', label: 'Ticker' },
-                      { key: 'subCategory', label: 'Sub-Category' },
+                      { key: 'ticker', label: viewerMode ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span>Ticker</span>
+                          <div style={{ display: 'flex', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(100,255,218,0.3)' }}>
+                            {['ticker','name','both'].map(opt => (
+                              <button key={opt} onClick={(e) => { e.stopPropagation(); setTickerDisplay(opt); }} style={{
+                                padding: '0.1rem 0.35rem',
+                                fontSize: '0.6rem',
+                                fontWeight: tickerDisplay === opt ? '700' : '400',
+                                background: tickerDisplay === opt ? 'rgba(100,255,218,0.2)' : 'transparent',
+                                color: tickerDisplay === opt ? '#64ffda' : '#64748b',
+                                border: 'none',
+                                cursor: 'pointer',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.03em'
+                              }}>{opt}</button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : 'Ticker' },
+                      { key: 'subCategory', label: 'Sub-Cat' },
                       { key: 'currentPrice', label: 'Price' },
                       { key: 'initialDate', label: 'Initial Date' },
                       { key: 'shares', label: 'Shares' },
@@ -2051,10 +2072,11 @@ const PortfolioApp = ({ viewerMode = false }) => {
                           fontSize: '0.7rem',
                           fontWeight: '600',
                           color: '#64ffda',
-                          textTransform: 'uppercase',
+                          textTransform: col.key === 'ticker' ? 'none' : 'uppercase',
                           letterSpacing: '0.05em',
                           cursor: col.key !== 'actions' ? 'pointer' : 'default',
-                          whiteSpace: 'nowrap'
+                          whiteSpace: 'nowrap',
+                          width: col.key === 'subCategory' ? '8%' : undefined
                         }}
                       >
                         {col.label}
@@ -2104,7 +2126,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
                               padding: '0.375rem 0.5rem',
                               fontWeight: '600',
                               color: '#e8edf4'
-                            }} title={holding.companyName || holding.ticker}>
+                            }} title={companyNames[holding.ticker] || holding.ticker}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 {!viewerMode && (
                                 <button
@@ -2124,12 +2146,29 @@ const PortfolioApp = ({ viewerMode = false }) => {
                                   {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                 </button>
                                 )}
-                                <span style={{
-                                  color: holding.accountType === 'Roth IRA' ? '#ef4444' : 
-                                         holding.accountType === 'Traditional IRA' ? '#22c55e' : 
-                                         '#eab308',
-                                  fontWeight: '600'
-                                }}>{holding.ticker}</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                                  {(!viewerMode || tickerDisplay === 'ticker' || tickerDisplay === 'both') && (
+                                    <span style={{
+                                      color: holding.accountType === 'Roth IRA' ? '#ef4444' : 
+                                             holding.accountType === 'Traditional IRA' ? '#22c55e' : 
+                                             '#eab308',
+                                      fontWeight: '600'
+                                    }}>{holding.ticker}</span>
+                                  )}
+                                  {viewerMode && (tickerDisplay === 'name' || tickerDisplay === 'both') && (
+                                    <span style={{
+                                      color: '#94a3b8',
+                                      fontSize: tickerDisplay === 'both' ? '0.7rem' : '0.85rem',
+                                      fontWeight: '400',
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      maxWidth: '160px'
+                                    }}>
+                                      {companyNames[holding.ticker] || holding.ticker}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </td>
                           <td style={{ padding: '0.375rem 0.5rem', color: '#94a3b8', fontSize: '0.75rem' }}>
