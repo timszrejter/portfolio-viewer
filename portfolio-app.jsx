@@ -3124,7 +3124,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
                     }}>
-                      ({holding.companyName || holding.ticker})
+                      ({companyNames[holding.ticker] || holding.companyName || holding.ticker})
                     </span>
                     <span style={{ 
                       marginLeft: 'auto', 
