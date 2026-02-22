@@ -152,8 +152,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
         currentPrice,
         shareBasis: purchasePrice,
         shares,
-        accountType: account?.startsWith('R') ? 'Roth IRA' : 
-                     account?.startsWith('T') ? 'Traditional IRA' : 'Taxable',
+        accountType: account?.startsWith('R') ? 'Roth IRA' : account?.startsWith('T') ? 'Traditional IRA' : 'Taxable',
         accountName: account,
         dividendYield: null,
         initialDate: null,
@@ -207,51 +206,6 @@ const PortfolioApp = ({ viewerMode = false }) => {
   };
 
   // === Viewer Mode: Load portfolio from Pinata via Vercel proxy ===
-  const loadViewerPortfolio = async (passphrase) => {
-    try {
-      setViewerLoading(true);
-      setViewerError(null);
-
-      const cid = window.__PINATA_CID__;
-      if (!cid) throw new Error('No Pinata CID configured. Please re-deploy after uploading your portfolio.');
-
-      console.log('📌 Fetching encrypted portfolio via proxy...');
-      const response = await fetch(`/api/pinata?cid=${cid}`);
-      if (!response.ok) throw new Error(`Failed to fetch from Pinata: HTTP ${response.status}`);
-
-      const encryptedBase64 = await response.text();
-      console.log(`📦 Fetched ${encryptedBase64.length} bytes`);
-
-      let decryptedJson;
-      try {
-        decryptedJson = await browserDecrypt(encryptedBase64, passphrase);
-      } catch (e) {
-        setViewerNeedsAuth(true);
-        throw new Error('Incorrect passphrase. Please try again.');
-      }
-
-      const data = JSON.parse(decryptedJson);
-      console.log('📊 Portfolio loaded:', data.h.length, 'holdings');
-
-      setViewerRawData(data);
-      const defaultTotal = 100000;
-
-      const { categories: cats, holdings: holds } = transformEncryptedData(data, defaultTotal);
-      setCategories(cats);
-      setHoldings(holds);
-      setViewerNeedsAuth(false);
-
-      await fetchViewerLivePrices(holds, data, defaultTotal);
-
-    } catch (err) {
-      console.error('Viewer load error:', err);
-      setViewerError(err.message);
-    } finally {
-      setViewerLoading(false);
-    }
-  };
-
-  // === Viewer Mode: Fetch live prices + company names via Vercel proxy ===
   const fetchViewerLivePrices = async (currentHoldings, rawData, totalVal) => {
     const uniqueTickers = [...new Set(currentHoldings.map(h => h.ticker))];
     const prices = {};
@@ -302,8 +256,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
           currentPrice: livePrice,
           shareBasis: purchasePrice,
           shares,
-          accountType: account?.startsWith('R') ? 'Roth IRA' : 
-                       account?.startsWith('T') ? 'Traditional IRA' : 'Taxable',
+          accountType: account?.startsWith('R') ? 'Roth IRA' : account?.startsWith('T') ? 'Traditional IRA' : 'Taxable',
           accountName: account,
           dividendYield: dividendYields[ticker] || null,
           initialDate: null,
@@ -318,6 +271,51 @@ const PortfolioApp = ({ viewerMode = false }) => {
       setHoldings(updatedHoldings);
     }
   };
+
+  const loadViewerPortfolio = async (passphrase) => {
+    try {
+      setViewerLoading(true);
+      setViewerError(null);
+
+      const cid = window.__PINATA_CID__;
+      if (!cid) throw new Error('No Pinata CID configured. Please re-deploy after uploading your portfolio.');
+
+      console.log('📌 Fetching encrypted portfolio via proxy...');
+      const response = await fetch(`/api/pinata?cid=${cid}`);
+      if (!response.ok) throw new Error(`Failed to fetch from Pinata: HTTP ${response.status}`);
+
+      const encryptedBase64 = await response.text();
+      console.log(`📦 Fetched ${encryptedBase64.length} bytes`);
+
+      let decryptedJson;
+      try {
+        decryptedJson = await browserDecrypt(encryptedBase64, passphrase);
+      } catch (e) {
+        setViewerNeedsAuth(true);
+        throw new Error('Incorrect passphrase. Please try again.');
+      }
+
+      const data = JSON.parse(decryptedJson);
+      console.log('📊 Portfolio loaded:', data.h.length, 'holdings');
+
+      setViewerRawData(data);
+      const defaultTotal = 100000;
+
+      const { categories: cats, holdings: holds } = transformEncryptedData(data, defaultTotal);
+      setCategories(cats);
+      setHoldings(holds);
+      setViewerNeedsAuth(false);
+
+      await fetchViewerLivePrices(holds, data, defaultTotal);
+
+    } catch (err) {
+      console.error('Viewer load error:', err);
+      setViewerError(err.message);
+    } finally {
+      setViewerLoading(false);
+    }
+  };
+
 
   // === Viewer Mode: Recalculate shares when total value changes ===
   React.useEffect(() => {
