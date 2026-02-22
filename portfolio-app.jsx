@@ -1327,307 +1327,156 @@ const PortfolioApp = ({ viewerMode = false }) => {
       fontFamily: '"Clash Display", "Inter", system-ui, sans-serif',
       color: '#e8edf4'
     }}>
-      {/* Header */}
+      {/* Header — single compact row */}
       <div style={{
         background: 'rgba(15, 23, 42, 0.6)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(100, 255, 218, 0.1)',
-        padding: '1.5rem 2rem',
+        padding: '0 2rem',
         position: 'sticky',
         top: 0,
         zIndex: 100
       }}>
-        <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1 style={{
-                fontSize: '2rem',
-                fontWeight: '700',
-                margin: 0,
-                background: 'linear-gradient(135deg, #64ffda 0%, #4ade80 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                letterSpacing: '-0.02em'
+        <div style={{ maxWidth: '1600px', margin: '0 auto', display: 'flex', alignItems: 'center', height: '56px', gap: '1.5rem' }}>
+
+          {/* Left: Title + Total Value */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', flexShrink: 0 }}>
+            <h1 style={{
+              fontSize: '1.25rem',
+              fontWeight: '700',
+              margin: 0,
+              background: 'linear-gradient(135deg, #64ffda 0%, #4ade80 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.02em',
+              whiteSpace: 'nowrap'
+            }}>
+              Portfolio {viewerMode ? 'Viewer' : 'Tracker'}
+            </h1>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+              <strong style={{ color: '#64ffda', fontSize: '0.95rem' }}>
+                ${(viewerMode ? viewerTotalValue : totalValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </strong>
+            </span>
+            {viewerMode && (
+              <span style={{
+                padding: '0.15rem 0.5rem',
+                background: 'rgba(147, 51, 234, 0.15)',
+                border: '1px solid rgba(147, 51, 234, 0.4)',
+                borderRadius: '20px',
+                color: '#c084fc',
+                fontSize: '0.65rem',
+                fontWeight: '600',
+                letterSpacing: '0.03em',
+                whiteSpace: 'nowrap'
               }}>
-                Portfolio {viewerMode ? 'Viewer' : 'Tracker'}
-              </h1>
-              <div style={{ 
-                fontSize: '0.875rem', 
-                color: '#94a3b8',
-                marginTop: '0.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem'
-              }}>
-                <span>Total Value: <strong style={{ color: '#64ffda', fontSize: '1.125rem' }}>${(viewerMode ? viewerTotalValue : totalValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></span>
-                {viewerMode && (
-                  <span style={{
-                    padding: '0.25rem 0.75rem',
-                    background: 'rgba(147, 51, 234, 0.15)',
-                    border: '1px solid rgba(147, 51, 234, 0.4)',
-                    borderRadius: '20px',
-                    color: '#c084fc',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    letterSpacing: '0.03em'
-                  }}>
-                    🔐 Encrypted • Read-only
-                  </span>
-                )}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              {viewerMode && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Portfolio Value:
-                    </label>
-                    <input
-                      type="number"
-                      value={viewerTotalValue}
-                      onChange={(e) => setViewerTotalValue(parseFloat(e.target.value) || 0)}
-                      step="1000"
-                      style={{
-                        padding: '0.5rem 0.75rem',
-                        background: 'rgba(15, 23, 42, 0.8)',
-                        border: '1px solid rgba(100, 255, 218, 0.3)',
-                        borderRadius: '8px',
-                        color: '#64ffda',
-                        fontSize: '0.875rem',
-                        fontWeight: '600',
-                        width: '150px',
-                        textAlign: 'right'
-                      }}
-                    />
-                  </div>
-                  <button
-                    onClick={() => viewerRawData && fetchViewerLivePrices(holdings, viewerRawData, viewerTotalValue)}
-                    style={{
-                      padding: '0.625rem 1.25rem',
-                      background: 'rgba(74, 222, 128, 0.1)',
-                      border: '1px solid #4ade80',
-                      borderRadius: '8px',
-                      color: '#4ade80',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}
-                    onMouseOver={e => e.target.style.background = 'rgba(74, 222, 128, 0.2)'}
-                    onMouseOut={e => e.target.style.background = 'rgba(74, 222, 128, 0.1)'}
-                  >
-                    <RefreshCw size={16} />
-                    Refresh Prices
-                  </button>
-                </>
-              )}
-              {!viewerMode && (
-                <>
-              <button
-                onClick={handleUploadToSolana}
-                disabled={uploadingSolana}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  background: 'rgba(147, 51, 234, 0.1)',
-                  border: '1px solid #9333ea',
-                  borderRadius: '8px',
-                  color: '#9333ea',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  cursor: uploadingSolana ? 'wait' : 'pointer',
-                  opacity: uploadingSolana ? 0.6 : 1,
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-                onMouseOver={e => !uploadingSolana && (e.target.style.background = 'rgba(147, 51, 234, 0.2)')}
-                onMouseOut={e => !uploadingSolana && (e.target.style.background = 'rgba(147, 51, 234, 0.1)')}
-                title={solanaWallet?.address ? `Solana: ${solanaWallet.address.substring(0, 8)}...` : 'Upload to Solana'}
-              >
-                <BarChart3 size={16} />
-                {uploadingSolana ? 'Uploading...' : 'Upload to Solana'}
-              </button>
-              <button
-                onClick={refreshMarketData}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  background: 'rgba(74, 222, 128, 0.1)',
-                  border: '1px solid #4ade80',
-                  borderRadius: '8px',
-                  color: '#4ade80',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-                onMouseOver={e => e.target.style.background = 'rgba(74, 222, 128, 0.2)'}
-                onMouseOut={e => e.target.style.background = 'rgba(74, 222, 128, 0.1)'}
-              >
-                <RefreshCw size={16} />
-                Refresh Market Data
-              </button>
-                </>
-              )}
-            </div>
+                🔐 Encrypted • Read-only
+              </span>
+            )}
           </div>
 
-          {/* Tabs */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginTop: '1.5rem',
-            borderBottom: '1px solid rgba(100, 255, 218, 0.1)',
-            paddingBottom: '0'
-          }}>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {['categories', 'holdings'].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: activeTab === tab ? 'rgba(100, 255, 218, 0.1)' : 'transparent',
-                    border: 'none',
-                    borderBottom: activeTab === tab ? '2px solid #64ffda' : '2px solid transparent',
-                    color: activeTab === tab ? '#64ffda' : '#64748b',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
-                  }}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-            
-            {/* Action buttons aligned with tabs */}
-            {!viewerMode && activeTab === 'categories' && (
+          {/* Center: Tabs */}
+          <div style={{ display: 'flex', flex: '0 0 auto' }}>
+            {['categories', 'holdings'].map(tab => (
               <button
-                onClick={() => setShowAddCategory(true)}
+                key={tab}
+                onClick={() => setActiveTab(tab)}
                 style={{
-                  padding: '0.625rem 1.25rem',
-                  background: 'linear-gradient(135deg, #64ffda 0%, #4ade80 100%)',
+                  padding: '0 1.25rem',
+                  height: '56px',
+                  background: 'transparent',
                   border: 'none',
-                  borderRadius: '8px',
-                  color: '#0a0e27',
-                  fontSize: '0.875rem',
+                  borderBottom: activeTab === tab ? '2px solid #64ffda' : '2px solid transparent',
+                  color: activeTab === tab ? '#64ffda' : '#64748b',
+                  fontSize: '0.8rem',
                   fontWeight: '600',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                <PlusCircle size={16} />
-                Add Category
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Spacer */}
+          <div style={{ flex: 1 }} />
+
+          {/* Right: Viewer controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+            {viewerMode && (
+              <>
+                <label style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
+                  Portfolio Value:
+                </label>
+                <input
+                  type="number"
+                  value={viewerTotalValue}
+                  onChange={(e) => setViewerTotalValue(parseFloat(e.target.value) || 0)}
+                  step="1000"
+                  style={{
+                    padding: '0.35rem 0.6rem',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(100, 255, 218, 0.3)',
+                    borderRadius: '6px',
+                    color: '#64ffda',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    width: '130px',
+                    textAlign: 'right'
+                  }}
+                />
+                <button
+                  onClick={() => viewerRawData && fetchViewerLivePrices(holdings, viewerRawData, viewerTotalValue)}
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    background: 'rgba(74, 222, 128, 0.1)',
+                    border: '1px solid rgba(74, 222, 128, 0.5)',
+                    borderRadius: '6px',
+                    color: '#4ade80',
+                    fontSize: '0.78rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <RefreshCw size={13} />
+                  Refresh
+                </button>
+              </>
+            )}
+
+            {/* Non-viewer buttons */}
+            {!viewerMode && activeTab === 'categories' && (
+              <button onClick={() => setShowAddCategory(true)} style={{ padding: '0.35rem 0.85rem', background: 'linear-gradient(135deg, rgba(100,255,218,0.15) 0%, rgba(74,222,128,0.15) 100%)', border: '1px solid rgba(100,255,218,0.4)', borderRadius: '6px', color: '#64ffda', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <PlusCircle size={13} /> Add Category
               </button>
             )}
             {!viewerMode && activeTab === 'holdings' && (
               <>
-                <button
-                  onClick={() => setShowAddHolding(true)}
-                  style={{
-                    padding: '0.625rem 1.25rem',
-                    background: 'linear-gradient(135deg, #64ffda 0%, #4ade80 100%)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#0a0e27',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <PlusCircle size={16} />
-                  Add Holding
+                <button onClick={() => setShowAddHolding(true)} style={{ padding: '0.35rem 0.85rem', background: 'linear-gradient(135deg, rgba(100,255,218,0.15) 0%, rgba(74,222,128,0.15) 100%)', border: '1px solid rgba(100,255,218,0.4)', borderRadius: '6px', color: '#64ffda', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <PlusCircle size={13} /> Add Holding
                 </button>
-
-                <label 
-                  htmlFor="csv-upload"
-                  style={{
-                    padding: '0.625rem 1.25rem',
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid #3b82f6',
-                    borderRadius: '8px',
-                    color: '#3b82f6',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: importing ? 'wait' : 'pointer',
-                    opacity: importing ? 0.6 : 1,
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                  onMouseOver={e => !importing && (e.target.style.background = 'rgba(59, 130, 246, 0.2)')}
-                  onMouseOut={e => !importing && (e.target.style.background = 'rgba(59, 130, 246, 0.1)')}
-                >
-                  <FileText size={16} />
-                  {importing ? 'Importing...' : 'Import CSV'}
+                <label htmlFor="csv-upload" style={{ padding: '0.35rem 0.85rem', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.5)', borderRadius: '6px', color: '#3b82f6', fontSize: '0.78rem', fontWeight: '600', cursor: importing ? 'wait' : 'pointer', opacity: importing ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <FileText size={13} /> {importing ? 'Importing...' : 'Import CSV'}
                 </label>
-                <input
-                  id="csv-upload"
-                  type="file"
-                  accept=".csv"
-                  onChange={handleImportCSV}
-                  disabled={importing}
-                  style={{ display: 'none' }}
-                />
-
-                <button
-                  onClick={handleFixSubCategories}
-                  disabled={fixingSubCategories}
-                  style={{
-                    padding: '0.625rem 1.25rem',
-                    background: 'rgba(168, 85, 247, 0.1)',
-                    border: '1px solid #a855f7',
-                    borderRadius: '8px',
-                    color: '#a855f7',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: fixingSubCategories ? 'wait' : 'pointer',
-                    opacity: fixingSubCategories ? 0.6 : 1,
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                  onMouseOver={e => !fixingSubCategories && (e.target.style.background = 'rgba(168, 85, 247, 0.2)')}
-                  onMouseOut={e => !fixingSubCategories && (e.target.style.background = 'rgba(168, 85, 247, 0.1)')}
-                >
-                  <BarChart3 size={16} />
-                  {fixingSubCategories ? 'Fixing...' : 'Fix Blank Sub-Categories'}
+                <input id="csv-upload" type="file" accept=".csv" onChange={handleImportCSV} disabled={importing} style={{ display: 'none' }} />
+                <button onClick={handleFixSubCategories} disabled={fixingSubCategories} style={{ padding: '0.35rem 0.85rem', background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.5)', borderRadius: '6px', color: '#a855f7', fontSize: '0.78rem', fontWeight: '600', cursor: fixingSubCategories ? 'wait' : 'pointer', opacity: fixingSubCategories ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <BarChart3 size={13} /> {fixingSubCategories ? 'Fixing...' : 'Fix Sub-Categories'}
                 </button>
-
-                {importResults && (
-                  <span style={{ 
-                    fontSize: '0.875rem',
-                    color: '#4ade80',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    ✓ Imported {importResults.processed} holdings
-                    {importResults.skipped > 0 && ` (${importResults.skipped} errors)`}
-                  </span>
-                )}
+                <div style={{ width: '1px', height: '24px', background: 'rgba(100,255,218,0.15)', margin: '0 0.25rem' }} />
+                <button onClick={handleUploadToSolana} disabled={uploadingSolana} style={{ padding: '0.35rem 0.85rem', background: 'rgba(147,51,234,0.1)', border: '1px solid rgba(147,51,234,0.5)', borderRadius: '6px', color: '#9333ea', fontSize: '0.78rem', fontWeight: '600', cursor: uploadingSolana ? 'wait' : 'pointer', opacity: uploadingSolana ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <BarChart3 size={13} /> {uploadingSolana ? 'Uploading...' : 'Upload to Solana'}
+                </button>
+                <button onClick={refreshMarketData} style={{ padding: '0.35rem 0.85rem', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.5)', borderRadius: '6px', color: '#4ade80', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <RefreshCw size={13} /> Refresh
+                </button>
               </>
             )}
           </div>
@@ -1635,10 +1484,10 @@ const PortfolioApp = ({ viewerMode = false }) => {
       </div>
 
       {/* Main Content */}
-      <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '2rem' }}>
+      <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '1rem 2rem' }}>
         {activeTab === 'categories' && (
           <div style={{ 
-            height: 'calc(100vh - 240px)', 
+            height: 'calc(100vh - 96px)', 
             display: 'flex', 
             flexDirection: 'column' 
           }}>
@@ -1815,7 +1664,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
 
         {activeTab === 'holdings' && (
           <div style={{ 
-            height: 'calc(100vh - 240px)', 
+            height: 'calc(100vh - 96px)', 
             display: 'flex', 
             flexDirection: 'column',
             gap: '1rem'
