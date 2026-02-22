@@ -256,6 +256,7 @@ const PortfolioApp = ({ viewerMode = false }) => {
     const uniqueTickers = [...new Set(currentHoldings.map(h => h.ticker))];
     const prices = {};
     const names = {};
+    const dividendYields = {};
 
     // Skip options (they have stored prices)
     const tickersToFetch = uniqueTickers.filter(t => !/^\w+\d{6}[CP]\d+/.test(t));
